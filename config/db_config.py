@@ -161,9 +161,9 @@ class DBManager:
             logger.error(f"채팅 서버 삭제 중 오류 발생: {e}")
             return False
 
-    def read_notice_list(self, notice_type: str = None):
+    def read_notice_list(self, notice_type: str = None, list_size: int = 10):
         """공지사항 리스트 반환"""
-        documents = self.get_collection("kookmin-feed", notice_type).find()
+        documents = self.get_collection("kookmin-feed", notice_type).find().limit(list_size)
         doc_list = []
         for doc in documents:
             doc_list.append(doc)

@@ -91,8 +91,8 @@ def delete_server_channel(server_id: str):
 
 
 @app.get("/notices/{notice_type}")
-def read_notice_list(notice_type: str):
-    return db_manager.read_notice_list(notice_type)
+def read_notice_list(notice_type: str, limit: int = 10):
+    return db_manager.read_notice_list(notice_type, limit=limit)
 
 
 if __name__ == "__main__":
