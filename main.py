@@ -1,99 +1,120 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request  # Request 추가
+import os  # os 모듈 추가
 from pydantic import BaseModel
 from config.db_config import DBManager
 
 app = FastAPI()
 db_manager = DBManager()
 
+API_KEY = os.getenv("API_KEY")  # 환경 변수에서 API_KEY 가져오기
 
-class DirectMessage(BaseModel):
-    user_id: str
-    user_name: str
-    scrapers: list
+def validate_api_key(api_key: str):
+    if api_key != API_KEY:
+        raise HTTPException(status_code=403, detail="Forbidden: Invalid API Key")
 
+@app.get("/discord/direct-messages")
+def get_direct_messages(api_key: str):
+    validate_api_key(api_key)
+    try:
+        return db_manager.read_direct_messages_list()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-class ServerChannel(BaseModel):
-    server_id: str
-    server_name: str
-    channel_id: str
-    channel_name: str
-    scrapers: list
+@app.post("/discord/direct-messages")
+def create_direct_message(api_key: str, dm):
+    validate_api_key(api_key)
+    success = db_manager.create_direct_message(dm.user_id, dm.user_name, dm.scrapers)
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to create direct message")
+    return {"message": "Direct message created successfully"}
 
-
-@app.get("/direct-messages/")
-def read_direct_messages_list():
-    return db_manager.read_direct_messages_list()
-
-
-@app.post("/direct-messages/")
-def create_direct_message(dm: DirectMessage):
-    if db_manager.create_direct_message(dm.user_id, dm.user_name, dm.scrapers):
-        return {"message": "Direct message created successfully"}
-    raise HTTPException(status_code=500, detail="Failed to create direct message")
-
-
-@app.get("/direct-messages/{user_id}")
-def read_direct_message(user_id: str):
+@app.get("/discord/direct-messages")
+def get_direct_message(api_key: str, user_id: str):
+    validate_api_key(api_key)
     dm = db_manager.read_direct_message(user_id)
-    if dm:
-        return dm
-    raise HTTPException(status_code=404, detail="Direct message not found")
+    if not dm:
+        raise HTTPException(status_code=404, detail="Direct message not found")
+    return dm
 
+@app.put("/discord/direct-messages")
+def update_direct_message(api_key: str, user_id: str, scrapers: list):
+    validate_api_key(api_key)
+    success = db_manager.update_direct_message(user_id, scrapers)
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to update direct message")
+    return {"message": "Direct message updated successfully"}
 
-@app.put("/direct-messages/{user_id}")
-def update_direct_message(user_id: str, scrapers: list):
-    if db_manager.update_direct_message(user_id, scrapers):
-        return {"message": "Direct message updated successfully"}
-    raise HTTPException(status_code=500, detail="Failed to update direct message")
+@app.delete("/discord/direct-messages")
+def delete_direct_message(api_key: str, user_id: str):
+    validate_api_key(api_key)
+    success = db_manager.delete_direct_message(user_id)
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to delete direct message")
+    return {"message": "Direct message deleted successfully"}
 
+@app.get("/discord/server-channels")
+def get_server_channels(api_key: str):
+    validate_api_key(api_key)
+    try:
+        return db_manager.read_server_channels_list()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-@app.delete("/direct-messages/{user_id}")
-def delete_direct_message(user_id: str):
-    if db_manager.delete_direct_message(user_id):
-        return {"message": "Direct message deleted successfully"}
-    raise HTTPException(status_code=500, detail="Failed to delete direct message")
-
-
-@app.get("/server-channels/")
-def read_server_channels_list():
-    return db_manager.read_server_channels_list()
-
-
-@app.post("/server-channels/")
-def create_server_channel(sc: ServerChannel):
-    if db_manager.create_server_channel(
+@app.post("/discord/server-channels")
+def create_server_channel(api_key: str, sc):
+    validate_api_key(api_key)
+    success = db_manager.create_server_channel(
         sc.server_id, sc.server_name, sc.channel_id, sc.channel_name, sc.scrapers
-    ):
-        return {"message": "Server channel created successfully"}
-    raise HTTPException(status_code=500, detail="Failed to create server channel")
+    )
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to create server channel")
+    return {"message": "Server channel created successfully"}
 
-
-@app.get("/server-channels/{server_id}")
-def read_server_channel(server_id: str):
+@app.get("/discord/server-channels")
+def get_server_channel(api_key: str, server_id: str):
+    validate_api_key(api_key)
     sc = db_manager.read_server_channel(server_id)
-    if sc:
-        return sc
-    raise HTTPException(status_code=404, detail="Server channel not found")
+    if not sc:
+        raise HTTPException(status_code=404, detail="Server channel not found")
+    return sc
 
+@app.put("/discord/server-channels")
+def update_server_channel(api_key: str, server_id: str, scrapers: list):
+    validate_api_key(api_key)
+    success = db_manager.update_server_channel(server_id, scrapers)
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to update server channel")
+    return {"message": "Server channel updated successfully"}
 
-@app.put("/server-channels/{server_id}")
-def update_server_channel(server_id: str, scrapers: list):
-    if db_manager.update_server_channel(server_id, scrapers):
-        return {"message": "Server channel updated successfully"}
-    raise HTTPException(status_code=500, detail="Failed to update server channel")
+@app.delete("/discord/server-channels")
+def delete_server_channel(api_key: str, server_id: str):
+    validate_api_key(api_key)
+    success = db_manager.delete_server_channel(server_id)
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to delete server channel")
+    return {"message": "Server channel deleted successfully"}
 
+@app.get("/notices/all")
+def get_notices(api_key: str, notice_type: str, list_size: int = 10):
+    validate_api_key(api_key)
+    try:
+        return db_manager.read_notice_list(notice_type, list_size)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-@app.delete("/server-channels/{server_id}")
-def delete_server_channel(server_id: str):
-    if db_manager.delete_server_channel(server_id):
-        return {"message": "Server channel deleted successfully"}
-    raise HTTPException(status_code=500, detail="Failed to delete server channel")
+@app.get("/notices/new")
+def get_new_notice(api_key: str, notice_type: str, last_notice_link: str):
+    validate_api_key(api_key)
+    notices = db_manager.read_notice_list(notice_type)
+    
+    ret = []
 
+    for notice in notices:
+        if notice["link"] == last_notice_link:
+            break
+        ret.append(notice)
 
-@app.get("/notices/{notice_type}")
-def read_notice_list(notice_type: str, limit: int = 10):
-    return db_manager.read_notice_list(notice_type, limit=limit)
-
+    return ret
 
 if __name__ == "__main__":
     import uvicorn
