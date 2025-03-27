@@ -4,7 +4,7 @@ from config.env_loader import ENV
 
 logger = logging.getLogger(__name__)
 
-IS_PROD = ENV["IS_PROD"]  # env_loader에서 가져옴
+IS_PROD = ENV["IS_PROD"]
 
 
 class DBManager:
@@ -161,12 +161,17 @@ class DBManager:
             logger.error(f"채팅 서버 삭제 중 오류 발생: {e}")
             return False
 
-    def read_notice_list(self, notice_type: str = None, list_size: int = 10):
+    def read_notice_list(self, notice_type: str = None, list_size: int = 5):
         """공지사항 리스트 반환"""
-        documents = self.get_collection("kookmin-feed", notice_type).find().limit(list_size)
+        documents = self.get_collection(collection_name=notice_type).find(sort=[("published", -1)]).limit(list_size)
         doc_list = []
         for doc in documents:
-            doc_list.append(doc)
+            dic = {}
+            for k, v in doc.items():  # .items()로 수정하여 키-값 쌍을 순회
+                if k == "_id": 
+                    continue
+                dic[k] = v
+            doc_list.append(dic)
         return doc_list
 
     def close_database(self):
