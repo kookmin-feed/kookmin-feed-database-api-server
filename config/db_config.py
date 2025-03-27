@@ -167,12 +167,41 @@ class DBManager:
         doc_list = []
         for doc in documents:
             dic = {}
-            for k, v in doc.items():  # .items()로 수정하여 키-값 쌍을 순회
+            for k, v in doc.items():  
                 if k == "_id": 
                     continue
                 dic[k] = v
             doc_list.append(dic)
         return doc_list
+    
+
+    def read_category_list(self):
+        """공지사항 리스트 반환"""
+        documents = self.get_collection(db_name="scraper-metadata", collection_name="scraper-categories").find()
+        doc_list = []
+        for doc in documents:
+            dic = {}
+            for k, v in doc.items():  
+                if k == "_id": 
+                    continue
+                dic[k] = v
+            doc_list.append(dic)
+        return doc_list
+    
+
+    def read_scraper_type_list(self):
+        """공지사항 리스트 반환"""
+        documents = self.get_collection(db_name="scraper-metadata", collection_name="scraper-types").find()
+        doc_list = []
+        for doc in documents:
+            dic = {}
+            for k, v in doc.items():  
+                if k == "_id": 
+                    continue
+                dic[k] = v
+            doc_list.append(dic)
+        return doc_list
+    
 
     def close_database(self):
         """데이터베이스 연결을 종료합니다."""

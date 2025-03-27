@@ -125,6 +125,22 @@ def get_new_notice(authorization: str = Header(None), notice_type: str = None, l
 
     return ret
 
+@app.get("/scraper/types")
+def get_scraper_types(authorization: str = Header(None)):
+    validate_api_key(authorization)
+    try:
+        return db_manager.read_scraper_type_list()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/scraper/categories")
+def get_scraper_categories(authorization: str = Header(None)):
+    validate_api_key(authorization)
+    try:
+        return db_manager.read_category_list()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 if __name__ == "__main__":
     import uvicorn
 
