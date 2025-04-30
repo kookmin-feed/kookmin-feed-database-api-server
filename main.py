@@ -10,7 +10,7 @@ if not logger.hasHandlers():
     logger.addHandler(handler)
 logger.setLevel(logging.INFO)
 
-app = FastAPI(docs_url=None)
+app = FastAPI()
 
 db_manager = DBManager()
 
