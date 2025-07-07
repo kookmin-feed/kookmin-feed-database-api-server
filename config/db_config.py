@@ -2,6 +2,7 @@ import logging
 from motor.motor_asyncio import AsyncIOMotorClient
 from config.env_loader import ENV
 from bson import ObjectId
+from datetime import datetime, timezone, timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -133,6 +134,47 @@ class DBManager:
         collection = await self.get_collection("scraper-metadata", "scraper-types")
         documents = await collection.find().to_list(None)
         return [transform_object_id(doc) for doc in documents]
-
+    
+    async def read_kakao_user(self, user_id: str):
+        collection = await self.get_collection("kakao", "kakao-users")
+        document = await collection.find_one({"user_id": user_id})
+        return transform_object_id(document)
+    
+    async def create_kakao_user(self, user_id: str, scrapers: list, access_token: str = None) -> bool:
+        try:
+            collection = await self.get_collection("kakao", "kakao-users")
+            now = datetime.now()
+            print(now)
+            await collection.insert_one({
+                "user_id": user_id,
+                "scrapers": scrapers,
+                "access_token": access_token,
+                "created_at": now,
+                "updated_at": now,
+            })
+        except Exception as e:
+            logger.error(f"카카오 유저 생성 중 오류 발생: {e}")
+            return False
+        return True
+    
+    async def update_kakao_user(self, user_id: str, scrapers: list, access_token: str = None) -> bool:
+        try:    
+            collection = await self.get_collection("kakao", "kakao-users")
+            now = datetime.now()
+            await collection.update_one({"user_id": user_id}, {"$set": {"scrapers": scrapers, "access_token": access_token, "updated_at": now}})
+        except Exception as e:
+            logger.error(f"카카오 유저 업데이트 중 오류 발생: {e}")
+            return False
+        return True
+    
+    async def delete_kakao_user(self, user_id: str) -> bool:
+        try:
+            collection = await self.get_collection("kakao", "kakao-users")
+            await collection.delete_one({"user_id": user_id})
+        except Exception as e:
+            logger.error(f"카카오 유저 삭제 중 오류 발생: {e}")
+            return False
+        return True
+    
     async def close_database(self):
         self.client.close()

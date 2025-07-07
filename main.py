@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Header
+from fastapi import FastAPI, HTTPException, Header, Query
 import os
 from config.db_config import DBManager
 import logging
@@ -129,6 +129,70 @@ async def get_scraper_types(authorization: str = Header(None)):
 async def get_scraper_categories(authorization: str = Header(None)):
     validate_api_key(authorization)
     return await db_manager.read_category_list()
+
+@app.get("/auth/kakao/token")
+async def get_kakao_token(authorization: str = Header(None), user_id: str = Query(None)):
+    if user_id is None:
+        raise HTTPException(status_code=400, detail="User ID is required")
+    if authorization is None:
+        raise HTTPException(status_code=400, detail="Authorization is required")
+    validate_api_key(authorization)
+    user = await db_manager.read_kakao_user(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="Kakao user not found")
+    if user["access_token"] is None:
+        raise HTTPException(status_code=404, detail="Kakao token not found")
+    return user["access_token"]
+
+@app.post("/kakao/user")
+async def create_kakao_user(authorization: str = Header(None), data: dict = None):
+    print(authorization)
+
+    validate_api_key(authorization)
+    if data['user_id'] is None:
+        raise HTTPException(status_code=400, detail="User ID is required")
+    if data['scrapers'] is None:
+        raise HTTPException(status_code=400, detail="Scrapers are required")
+    if data['access_token'] is None:
+        raise HTTPException(status_code=400, detail="Access token is required")
+    success = await db_manager.create_kakao_user(data["user_id"], data["scrapers"], data["access_token"])
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to create kakao user")
+    return {"message": "Kakao user created successfully"}
+
+@app.get("/kakao/user")
+async def get_kakao_user(authorization: str = Header(None), user_id: str = Query(None)):
+    validate_api_key(authorization)
+    if user_id is None:
+        raise HTTPException(status_code=400, detail="User ID is required")
+    user = await db_manager.read_kakao_user(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="Kakao user not found")
+    return user
+
+@app.put("/kakao/user")
+async def update_kakao_user(authorization: str = Header(None), data: dict = None):
+    validate_api_key(authorization)
+    if data['user_id'] is None:
+        raise HTTPException(status_code=400, detail="User ID is required")
+    if data['scrapers'] is None:
+        raise HTTPException(status_code=400, detail="Scrapers are required")
+    if data['access_token'] is None:
+        raise HTTPException(status_code=400, detail="Access token is required")
+    success = await db_manager.update_kakao_user(data["user_id"], data["scrapers"], data["access_token"])
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to update kakao user")
+    return {"message": "Kakao user updated successfully"}
+
+@app.delete("/kakao/user")
+async def delete_kakao_user(authorization: str = Header(None), user_id: str = Query(None)):
+    validate_api_key(authorization)
+    if user_id is None:
+        raise HTTPException(status_code=400, detail="User ID is required")
+    success = await db_manager.delete_kakao_user(user_id)
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to delete kakao user")
+    return {"message": "Kakao user deleted successfully"}
 
 if __name__ == "__main__":
     import uvicorn
