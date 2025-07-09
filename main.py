@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException, Header, Query
 import os
+from api.v1.api import api_router
 from config.db_config import DBManager
 import logging
 
@@ -12,187 +13,12 @@ logger.setLevel(logging.INFO)
 
 app = FastAPI()
 
+app.include_router(api_router, prefix="/api/v1")
+
 db_manager = DBManager()
 
 API_KEY = os.getenv("API_KEY")
 
-def validate_api_key(authorization: str = Header(None)):
-    if authorization != f"Bearer {API_KEY}":
-        raise HTTPException(status_code=403, detail="Forbidden: Invalid API Key")
-
-@app.get("/connect-check")
-async def checking_connection(authorization: str = Header(None)):
-    validate_api_key(authorization)
-    return "200 OK"
-
-@app.get("/discord/direct-messages")
-async def get_direct_messages(authorization: str = Header(None)):
-    validate_api_key(authorization)
-    return await db_manager.read_direct_messages_list()
-
-@app.post("/discord/direct-messages")
-async def create_direct_message(authorization: str = Header(None), data: dict = None):
-    validate_api_key(authorization)
-    success = await db_manager.create_direct_message(data["user_id"], data["user_name"], data["scrapers"])
-    if not success:
-        raise HTTPException(status_code=500, detail="Failed to create direct message")
-    return {"message": "Direct message created successfully"}
-
-@app.get("/discord/direct-message")
-async def get_direct_message(authorization: str = Header(None), user_id: str = None):
-    validate_api_key(authorization)
-    dm = await db_manager.read_direct_message(user_id)
-    if not dm:
-        raise HTTPException(status_code=404, detail="Direct message not found")
-    return dm
-
-@app.put("/discord/direct-messages")
-async def update_direct_message(authorization: str = Header(None), data: dict = None):
-    validate_api_key(authorization)
-    success = await db_manager.update_direct_message(data["user_id"], data["scrapers"])
-    if not success:
-        raise HTTPException(status_code=500, detail="Failed to update direct message")
-    return {"message": "Direct message updated successfully"}
-
-@app.delete("/discord/direct-messages")
-async def delete_direct_message(authorization: str = Header(None), user_id: str = None):
-    validate_api_key(authorization)
-    success = await db_manager.delete_direct_message(user_id)
-    if not success:
-        raise HTTPException(status_code=500, detail="Failed to delete direct message")
-    return {"message": "Direct message deleted successfully"}
-
-@app.get("/discord/server-channels")
-async def get_server_channels(authorization: str = Header(None)):
-    validate_api_key(authorization)
-    return await db_manager.read_server_channels_list()
-
-@app.post("/discord/server-channels")
-async def create_server_channel(authorization: str = Header(None), data: dict = None):
-    validate_api_key(authorization)
-    success = await db_manager.create_server_channel(
-        guild_name=data["guild_name"], channel_id=data["channel_id"], 
-        channel_name=data["channel_name"], scrapers=data["scrapers"]
-    )
-    if not success:
-        raise HTTPException(status_code=500, detail="Failed to create server channel")
-    return {"message": "Server channel created successfully"}
-
-@app.get("/discord/server-channel")
-async def get_server_channel(authorization: str = Header(None), channel_id: str = None):
-    validate_api_key(authorization)
-    sc = await db_manager.read_server_channel(channel_id)
-    if not sc:
-        raise HTTPException(status_code=404, detail="Server channel not found")
-    return sc
-
-@app.put("/discord/server-channels")
-async def update_server_channel(authorization: str = Header(None), data: dict = None):
-    validate_api_key(authorization)
-    success = await db_manager.update_server_channel(data["channel_id"], data["scrapers"])
-    if not success:
-        raise HTTPException(status_code=500, detail="Failed to update server channel")
-    return {"message": "Server channel updated successfully"}
-
-@app.delete("/discord/server-channels")
-async def delete_server_channel(authorization: str = Header(None), channel_id: str = None):
-    validate_api_key(authorization)
-    success = await db_manager.delete_server_channel(channel_id)
-    if not success:
-        raise HTTPException(status_code=500, detail="Failed to delete server channel")
-    return {"message": "Server channel deleted successfully"}
-
-@app.get("/notices/all")
-async def get_notices(authorization: str = Header(None), notice_type: str = None, list_size: int = 10):
-    validate_api_key(authorization)
-    return await db_manager.read_notice_list(notice_type, list_size)
-
-@app.get("/notices/new")
-async def get_new_notice(authorization: str = Header(None), notice_type: str = None, last_notice_link: str = None):
-    validate_api_key(authorization)
-    notices = await db_manager.read_notice_list(notice_type, 50)
-    response_list = []
-
-    for notice in notices:
-        if notice["link"] == last_notice_link:
-            break
-        response_list.append(notice)
-    
-    return response_list
-
-@app.get("/scraper/types")
-async def get_scraper_types(authorization: str = Header(None)):
-    validate_api_key(authorization)
-    return await db_manager.read_scraper_type_list()
-
-@app.get("/scraper/categories")
-async def get_scraper_categories(authorization: str = Header(None)):
-    validate_api_key(authorization)
-    return await db_manager.read_category_list()
-
-@app.get("/auth/kakao/token")
-async def get_kakao_token(authorization: str = Header(None), user_id: str = Query(None)):
-    if user_id is None:
-        raise HTTPException(status_code=400, detail="User ID is required")
-    if authorization is None:
-        raise HTTPException(status_code=400, detail="Authorization is required")
-    validate_api_key(authorization)
-    user = await db_manager.read_kakao_user(user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="Kakao user not found")
-    if user["access_token"] is None:
-        raise HTTPException(status_code=404, detail="Kakao token not found")
-    return user["access_token"]
-
-@app.post("/kakao/user")
-async def create_kakao_user(authorization: str = Header(None), data: dict = None):
-    print(authorization)
-
-    validate_api_key(authorization)
-    if data['user_id'] is None:
-        raise HTTPException(status_code=400, detail="User ID is required")
-    if data['scrapers'] is None:
-        raise HTTPException(status_code=400, detail="Scrapers are required")
-    if data['access_token'] is None:
-        raise HTTPException(status_code=400, detail="Access token is required")
-    success = await db_manager.create_kakao_user(data["user_id"], data["scrapers"], data["access_token"])
-    if not success:
-        raise HTTPException(status_code=500, detail="Failed to create kakao user")
-    return {"message": "Kakao user created successfully"}
-
-@app.get("/kakao/user")
-async def get_kakao_user(authorization: str = Header(None), user_id: str = Query(None)):
-    validate_api_key(authorization)
-    if user_id is None:
-        raise HTTPException(status_code=400, detail="User ID is required")
-    user = await db_manager.read_kakao_user(user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="Kakao user not found")
-    return user
-
-@app.put("/kakao/user")
-async def update_kakao_user(authorization: str = Header(None), data: dict = None):
-    validate_api_key(authorization)
-    if data['user_id'] is None:
-        raise HTTPException(status_code=400, detail="User ID is required")
-    if data['scrapers'] is None:
-        raise HTTPException(status_code=400, detail="Scrapers are required")
-    if data['access_token'] is None:
-        raise HTTPException(status_code=400, detail="Access token is required")
-    success = await db_manager.update_kakao_user(data["user_id"], data["scrapers"], data["access_token"])
-    if not success:
-        raise HTTPException(status_code=500, detail="Failed to update kakao user")
-    return {"message": "Kakao user updated successfully"}
-
-@app.delete("/kakao/user")
-async def delete_kakao_user(authorization: str = Header(None), user_id: str = Query(None)):
-    validate_api_key(authorization)
-    if user_id is None:
-        raise HTTPException(status_code=400, detail="User ID is required")
-    success = await db_manager.delete_kakao_user(user_id)
-    if not success:
-        raise HTTPException(status_code=500, detail="Failed to delete kakao user")
-    return {"message": "Kakao user deleted successfully"}
 
 if __name__ == "__main__":
     import uvicorn
