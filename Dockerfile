@@ -1,9 +1,16 @@
-FROM ghcr.io/astral-sh/uv:python3.10-alpine
+FROM ghcr.io/astral-sh/uv:debian-slim
+
+RUN apt-get update && \
+    apt-get install -y \
+    supervisor \
+    curl \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
 EXPOSE 8000
 WORKDIR /app
 COPY . .
 
-RUN apk add --no-cache curl
 RUN uv sync --frozen
 
-CMD ["uv", "run", "python", "main.py"]
+CMD ["supervisord", "-c", "supervisord.conf"]
