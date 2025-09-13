@@ -2,13 +2,13 @@ name: Deploy Database API Server
 
 on:
   push:
-    branches: [ develop ]
+    branches: [ main ]
   workflow_dispatch:
     inputs:
       branch:
         description: 'Branch to deploy'
         required: true
-        default: 'develop'
+        default: 'main'
         type: string
 
 env:
@@ -37,7 +37,7 @@ jobs:
       - name: Deploy via SSM Run Command
         id: deploy
         run: |
-          BRANCH="${{ github.event.inputs.branch || 'develop' }}"
+          BRANCH="${{ github.event.inputs.branch || 'main' }}"
           
           echo "Deploying database-api-server (branch: $BRANCH) to EC2..."
           
