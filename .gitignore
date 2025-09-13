@@ -1,1 +1,8 @@
-/envs
+/envs/.dev.env
+.env
+**/__pycache__/
+.DS_Store
+/logs/*
+!/logs/.gitkeep
+supervisord.log
+supervisord.pid
