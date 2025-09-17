@@ -6,3 +6,8 @@
 !/logs/.gitkeep
 supervisord.log
 supervisord.pid
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*$py.class
