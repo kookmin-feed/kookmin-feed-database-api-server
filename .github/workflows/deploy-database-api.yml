@@ -64,8 +64,8 @@ jobs:
           # .env 파일을 base64로 인코딩
           ENV_CONTENT=$(base64 -w 0 .env)
           
-          echo "Deploying database-api-server (branch: $BRANCH) to EC2..."
-          
+          echo "Deploying database-api-server (branch: $BRANCH) to EC2..."          
+
           # ENV_SUFFIX를 소문자로 변환하여 SSM Document 이름 구성
           ENV_SUFFIX_LOWER=$(echo "${ENV_SUFFIX}" | tr '[:upper:]' '[:lower:]')
 
