@@ -17,7 +17,7 @@ class LocalAccessMiddleware(BaseHTTPMiddleware):
     Starlette의 BaseHTTPMiddleware를 상속받아 구현
     """
 
-    ALLOWED_LOCAL_IPS = ["127.0.0.1", "0.0.0.0", "localhost"]
+    ALLOWED_LOCAL_IPS = ["127.0.0.1", "0.0.0.0", "localhost", "192.168.0.100"]
 
     def __init__(self, app):
         """
@@ -40,8 +40,19 @@ class LocalAccessMiddleware(BaseHTTPMiddleware):
         if not client_ip:
             return False
 
-        if client_ip.startswith("127."):
+        if client_ip.startswith("127.") or client_ip.startswith("192"):
             return True
+
+        # 172.16.0.0 ~ 172.31.255.255 (172.16/12) 대역 확인
+        if client_ip.startswith("172."):
+            try:
+                parts = client_ip.split(".")
+                if len(parts) >= 2:
+                    second_octet = int(parts[1])
+                    if 16 <= second_octet <= 31:
+                        return True
+            except (ValueError, IndexError):
+                pass
 
         # 기본 로컬 IP 확인
         if client_ip in self.ALLOWED_LOCAL_IPS:
